@@ -10,7 +10,7 @@ import { IDisplayAllDayEvent } from "./calendar";
 @Component({
     selector: 'dayview',
     template: `
-        <ion-slides #daySlider [loop]="true" [dir]="dir" (ionSlideDidChange)="onSlideChanged()">
+        <ion-slides #daySlider [loop]="true" [dir]="dir" [spaceBetween]="spaceBetween" (ionSlideDidChange)="onSlideChanged()">
             <ion-slide>
                 <div class="dayview-allday-table">
                     <div class="dayview-allday-label">{{allDayLabel}}</div>
@@ -276,6 +276,7 @@ import { IDisplayAllDayEvent } from "./calendar";
           line-height: 50px;
           text-align: center;
           width: 50px;
+          border-left: 1px solid #ddd;
         }
 
         [dir="rtl"] .dayview-allday-label {
@@ -395,6 +396,7 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
     @Input() lockSwipes:boolean;
     @Input() startHour:number;
     @Input() endHour:number;
+    @Input() spaceBetween:number;
 
     @Output() onRangeChanged = new EventEmitter<IRange>();
     @Output() onEventSelected = new EventEmitter<IEvent>();
@@ -723,7 +725,8 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
     }
 
     getTitle():string {
-        let startingDate = this.range.startTime;
+        let startingDate = new Date(this.range.startTime.getTime());
+        startingDate.setHours(12, 0,0,0);
         return this.formatTitle(startingDate);
     }
 
@@ -746,7 +749,7 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
 
     placeEvents(orderedEvents:IDisplayEvent[]) {
         this.calculatePosition(orderedEvents);
-        DayViewComponent.calculateWidth(orderedEvents, this.hourRange);
+        DayViewComponent.calculateWidth(orderedEvents, this.hourRange, this.hourParts);
     }
 
     placeAllDayEvents(orderedEvents:IDisplayEvent[]) {
@@ -802,14 +805,15 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
         }
     }
 
-    private static calculateWidth(orderedEvents:IDisplayEvent[], size:number) {
-        let cells:{ calculated: boolean; events: IDisplayEvent[]; }[] = new Array(size);
+    private static calculateWidth(orderedEvents:IDisplayEvent[], size:number, hourParts:number) {
+        let totalSize = size * hourParts,
+            cells:{ calculated: boolean; events: IDisplayEvent[]; }[] = new Array(totalSize);
 
         // sort by position in descending order, the right most columns should be calculated first
         orderedEvents.sort((eventA, eventB) => {
             return eventB.position - eventA.position;
         });
-        for (let i = 0; i < size; i += 1) {
+        for (let i = 0; i < totalSize; i += 1) {
             cells[i] = {
                 calculated: false,
                 events: []
@@ -818,8 +822,8 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
         let len = orderedEvents.length;
         for (let i = 0; i < len; i += 1) {
             let event = orderedEvents[i];
-            let index = event.startIndex;
-            while (index < event.endIndex) {
+            let index = event.startIndex * hourParts + event.startOffset;
+            while (index < event.endIndex * hourParts - event.endOffset) {
                 cells[index].events.push(event);
                 index += 1;
             }
@@ -833,8 +837,8 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
                 event.overlapNumber = overlapNumber;
                 let eventQueue = [event];
                 while ((event = eventQueue.shift())) {
-                    let index = event.startIndex;
-                    while (index < event.endIndex) {
+                    let index = event.startIndex * hourParts + event.startOffset;
+                    while (index < event.endIndex * hourParts - event.endOffset) {
                         if (!cells[index].calculated) {
                             cells[index].calculated = true;
                             if (cells[index].events) {
