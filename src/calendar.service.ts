@@ -10,11 +10,13 @@ export class CalendarService {
     currentDateChangedFromParent$: Observable<Date>;
     currentDateChangedFromChildren$: Observable<Date>;
     eventSourceChanged$: Observable<void>;
+    localeSourceChanged$: Observable<string>;
 
     private _currentDate: Date;
     private currentDateChangedFromParent = new Subject<Date>();
     private currentDateChangedFromChildren = new Subject<Date>();
     private eventSourceChanged = new Subject<void>();
+    private localeSourceChanged = new Subject<string>();
 
     constructor() {
         this.currentDateChangedFromParent$ = this.currentDateChangedFromParent.asObservable();
@@ -130,5 +132,9 @@ export class CalendarService {
 
     loadEvents() {
         this.eventSourceChanged.next();
+    }
+
+    loadLocale(language) {
+        this.localeSourceChanged.next(language);
     }
 }

@@ -348,7 +348,7 @@ import { IDisplayAllDayEvent } from "./calendar";
           line-height: 50px;
           text-align: center;
           width: 50px;
-          border-left: 1px solid #ddd;  
+          border-left: 1px solid #ddd;
         }
 
         [dir="rtl"] .weekview-allday-label {
@@ -499,6 +499,7 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
     private callbackOnInit = true;
     private currentDateChangedFromParentSubscription:Subscription;
     private eventSourceChangedSubscription:Subscription;
+    private localeSourceChangedSubscription:Subscription;
     private hourColumnLabels:string[];
     private initScrollPosition:number;
     private formatDayHeader:(date:Date) => string;
@@ -514,8 +515,8 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
         if (this.dateFormatter && this.dateFormatter.formatWeekViewDayHeader) {
             this.formatDayHeader = this.dateFormatter.formatWeekViewDayHeader;
         } else {
-            var datePipe = new DatePipe(this.locale);
             this.formatDayHeader = function (date:Date) {
+                let datePipe = new DatePipe(this.locale);
                 return datePipe.transform(date, this.formatWeekViewDayHeader);
             };
         }
@@ -523,8 +524,8 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
         if (this.dateFormatter && this.dateFormatter.formatWeekViewTitle) {
             this.formatTitle = this.dateFormatter.formatWeekViewTitle;
         } else {
-            var datePipe = new DatePipe(this.locale);
             this.formatTitle = function (date:Date) {
+                let datePipe = new DatePipe(this.locale);
                 return datePipe.transform(date, this.formatWeekTitle);
             };
         }
@@ -532,8 +533,8 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
         if (this.dateFormatter && this.dateFormatter.formatWeekViewHourColumn) {
             this.formatHourColumnLabel = this.dateFormatter.formatWeekViewHourColumn;
         } else {
-            var datePipe = new DatePipe(this.locale);
             this.formatHourColumnLabel = function (date:Date) {
+                let datePipe = new DatePipe(this.locale);
                 return datePipe.transform(date, this.formatHourColumn);
             };
         }
@@ -551,6 +552,13 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
         this.inited = true;
 
         this.currentDateChangedFromParentSubscription = this.calendarService.currentDateChangedFromParent$.subscribe(currentDate => {
+            this.refreshView();
+        });
+
+        this.localeSourceChangedSubscription = this.calendarService.localeSourceChanged$.subscribe(language => {
+            this.locale = language;
+            this.getTitle();
+            this.hourColumnLabels = this.getHourColumnLabels();
             this.refreshView();
         });
 
@@ -595,6 +603,11 @@ export class WeekViewComponent implements ICalendarComponent, OnInit, OnChanges 
         if (this.currentDateChangedFromParentSubscription) {
             this.currentDateChangedFromParentSubscription.unsubscribe();
             this.currentDateChangedFromParentSubscription = null;
+        }
+
+        if (this.localeSourceChangedSubscription) {
+            this.localeSourceChangedSubscription.unsubscribe();
+            this.localeSourceChangedSubscription = null;
         }
 
         if (this.eventSourceChangedSubscription) {

@@ -417,6 +417,7 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
     private callbackOnInit = true;
     private currentDateChangedFromParentSubscription:Subscription;
     private eventSourceChangedSubscription:Subscription;
+    private localeSourceChangedSubscription:Subscription;
     private hourColumnLabels:string[];
     private initScrollPosition:number;
     private formatTitle:(date:Date) => string;
@@ -431,8 +432,8 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
         if (this.dateFormatter && this.dateFormatter.formatDayViewTitle) {
             this.formatTitle = this.dateFormatter.formatDayViewTitle;
         } else {
-            var datePipe = new DatePipe(this.locale);
             this.formatTitle = function (date:Date) {
+                let datePipe = new DatePipe(this.locale);
                 return datePipe.transform(date, this.formatDayTitle);
             };
         }
@@ -440,8 +441,8 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
         if (this.dateFormatter && this.dateFormatter.formatDayViewHourColumn) {
             this.formatHourColumnLabel = this.dateFormatter.formatDayViewHourColumn;
         } else {
-            var datePipe = new DatePipe(this.locale);
             this.formatHourColumnLabel = function (date:Date) {
+                let datePipe = new DatePipe(this.locale);
                 return datePipe.transform(date, this.formatHourColumn);
             };
         }
@@ -463,8 +464,15 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
             this.refreshView();
         });
 
+        this.localeSourceChangedSubscription = this.calendarService.localeSourceChanged$.subscribe(language => {
+           this.locale = language;
+        });
+
         this.eventSourceChangedSubscription = this.calendarService.eventSourceChanged$.subscribe(() => {
             this.onDataLoaded();
+            this.getTitle();
+            this.hourColumnLabels = this.getHourColumnLabels();
+            this.refreshView();
         });
     }
 
@@ -504,6 +512,11 @@ export class DayViewComponent implements ICalendarComponent, OnInit, OnChanges {
         if (this.currentDateChangedFromParentSubscription) {
             this.currentDateChangedFromParentSubscription.unsubscribe();
             this.currentDateChangedFromParentSubscription = null;
+        }
+
+        if (this.localeSourceChangedSubscription) {
+            this.localeSourceChangedSubscription.unsubscribe();
+            this.localeSourceChangedSubscription = null;
         }
 
         if (this.eventSourceChangedSubscription) {
